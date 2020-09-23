@@ -5,6 +5,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.util.Log
 import android.view.*
 import android.widget.Toast
@@ -67,12 +68,15 @@ class MainActivity : AppCompatActivity(), RecyclerAdapter.CellClickListener {
         super.onActivityResult(requestCode, resultCode, data)
 
         var returnString = data?.getStringExtra("newNote")
-//        Toast.makeText(applicationContext, returnString, Toast.LENGTH_SHORT)
+        var updatedString = data?.getStringExtra("updatedNote")
+        var updatedStringID = data?.getIntExtra("updatedNoteID", -1)
+
         if (returnString != null) {
             addNote(returnString)
         }
-        else {
-            Log.d("It was a NULL!", ":(")
+        else if (updatedString != null){
+            val note = Notes(updatedStringID, updatedString)
+            updateNote(note)
         }
     }
 
@@ -96,16 +100,28 @@ class MainActivity : AppCompatActivity(), RecyclerAdapter.CellClickListener {
         }
     }
 
+    private fun updateNote(note: Notes) {
+        CoroutineScope(Dispatchers.IO).launch {
+            var appDB = NotesDatabase.getInstance(application)
+            appDB.getNotesDao().updateNote(note)
+
+//            var newNote = Notes(null,"This is another way to insert note")
+            val newNotesList = appDB.getNotesDao().getAll()
+            launch(Dispatchers.Main) {
+                updateNotesView(newNotesList)
+            }
+        }
+    }
+
     private fun deleteAll() {
 
-        var alert = AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setIcon(android.R.drawable.ic_dialog_alert)
             .setTitle("Are you sure you would like to delete ALL notes?")
             .setMessage("This cannot be undone.")
             .setPositiveButton("Yes", object: DialogInterface.OnClickListener {
                 override fun onClick(dialogInterface: DialogInterface, i: Int) {
-                    Toast.makeText(applicationContext, "Test", Toast.LENGTH_LONG)
-                    CoroutineScope(Dispatchers.IO).launch {
+                    CoroutineScope(Dispatchers.Main).launch {
                         reallyDeleteAll()
                     }
 
@@ -124,12 +140,43 @@ class MainActivity : AppCompatActivity(), RecyclerAdapter.CellClickListener {
         }
     }
 
+    suspend fun deleteNote(id: Int?) = withContext(Dispatchers.IO) {
+        if (id != null) {
+            var appDB = NotesDatabase.getInstance(application)
+            appDB.getNotesDao().deleteNote(id)
+            val result = appDB.getNotesDao().getAll()
+            launch(Dispatchers.Main) {
+                updateNotesView(result)
+            }
+        }
+    }
+
     fun updateNotesView(listIn: List<Notes> = arrayListOf()) {
         notesView.adapter = RecyclerAdapter(listIn, this, this)
     }
 
     override fun onCellClickListener(selected: Notes) {
-        Log.d("Clicked on", selected.noteData)
+        val intent = Intent(applicationContext, EditNoteScreen::class.java)
+        intent.putExtra("SavedNote", selected.noteData)
+        intent.putExtra("SavedNoteID", selected.id)
+        startActivityForResult(intent, 1)
+    }
+
+    override fun onLongClick(selected: Notes) {
+        AlertDialog.Builder(this)
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setTitle("Are you sure you would like to delete this note?")
+            .setMessage("This cannot be undone.")
+            .setPositiveButton("Yes", object: DialogInterface.OnClickListener {
+                override fun onClick(dialogInterface: DialogInterface, i: Int) {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        deleteNote(selected.id)
+                    }
+
+                }
+            })
+            .setNegativeButton("No", null)
+            .show()
     }
 
 }

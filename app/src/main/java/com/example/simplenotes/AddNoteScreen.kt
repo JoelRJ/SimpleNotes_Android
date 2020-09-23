@@ -13,14 +13,12 @@ class AddNoteScreen : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_note_screen)
 
-        finishNoteButton.setOnClickListener(object: View.OnClickListener {
-            override fun onClick(view: View?) {
-                val intent = Intent()
-                val noteToSend = newNoteInput.text.toString()
-                intent.putExtra("newNote", noteToSend)
-                setResult(RESULT_OK, intent)
-                finish()
-            }
-        })
+        finishNoteButton.setOnClickListener {
+            val intent = Intent()
+            val noteToSend = newNoteInput.text.toString()
+            intent.putExtra("newNote", noteToSend)
+            setResult(RESULT_OK, intent)
+            finish()
+        }
     }
 }

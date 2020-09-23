@@ -21,4 +21,7 @@ interface NotesDao {
 
     @Query("DELETE FROM Notes")
     suspend fun nukeNotes()
+
+    @Update
+    suspend fun updateNote(note: Notes)
 }

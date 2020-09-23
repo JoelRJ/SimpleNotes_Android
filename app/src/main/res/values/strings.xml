@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Simple Notes</string>
+    <string name="title_activity_edit_note_screen">EditNoteScreen</string>
+    <string name="edit_button_text">Finish editing</string>
+    <string name="add_button_text">Add note</string>
+    <string name="insert_note_hint">Insert note here</string>
 </resources>
